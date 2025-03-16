@@ -2,6 +2,20 @@ provider "aws" {
 
 }
 
+# using data sources to get default vpc:
+data "aws_vpc" "default" {
+  default = true
+
+}
+
+# finding the subnets within that vpc
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+
+}
 /*resource "aws_instance" "example" {
   ami           = "ami-0cb91c7de36eed2cb"
   instance_type = "t2.micro"
@@ -24,7 +38,7 @@ provider "aws" {
 }
 */
 
-# let's create an configuration for an auto scaling group instead of ec2 instance which is commented above:
+# let's create a configuration for an auto scaling group instead of ec2 instance which is commented above:
 
 resource "aws_launch_configuration" "example" {
   image_id        = "ami-0cb91c7de36eed2cb"
@@ -56,7 +70,14 @@ resource "aws_security_group" "instance" {
 
 resource "aws_autoscaling_group" "example" {
   launch_configuration = aws_launch_configuration.example.name
+  vpc_zone_identifier  = data.aws_subnets.default.ids
   min_size             = 1
   max_size             = 2
+
+  tag {
+    key                 = "Name"
+    value               = "web"
+    propagate_at_launch = true
+  }
 
 }
